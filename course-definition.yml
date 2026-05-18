@@ -21,6 +21,7 @@ languages:
   - slug: "cpp"
   - slug: "crystal"
   - slug: "csharp"
+  - slug: "dart"
   - slug: "elixir"
   - slug: "gleam"
   - slug: "go"
