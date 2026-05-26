@@ -20,7 +20,13 @@ let serverBootstrap = ServerBootstrap(group: group)
     }
 
 // Bind the server to port 6379 and start accepting connections
-let channel = try serverBootstrap.bind(to: SocketAddress(ipAddress: "::1", port: 6379)).wait()
-print("Server started and listening on \(channel.localAddress!)")
-try channel.closeFuture.wait()
+do {
+    let channel = try serverBootstrap.bind(to: SocketAddress(ipAddress: "0.0.0.0", port: 6379)).wait()
+    print("Server started and listening on \(channel.localAddress!)")
+    try channel.closeFuture.wait()
+}
+catch {
+    print("Server error: \(error)")
+    exit(1)
+}
 print("Server closed")
