@@ -16,6 +16,7 @@ set -e # Exit early if any commands fail
   cd "$(dirname "$0")" # Ensure compile steps are run within the repository directory
   .codecrafters/restore_mtimes.sh || true
   swift build -c release --build-path /tmp/codecrafters-build-redis-swift
+  .codecrafters/snapshot_mtimes.sh || true
 )
 
 # Copied from .codecrafters/run.sh

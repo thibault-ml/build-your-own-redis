@@ -6,15 +6,28 @@ ENV CODECRAFTERS_DEPENDENCY_FILE_PATHS="Package.swift,Package.resolved"
 
 WORKDIR /app
 
+# Copy only the dependency manifests and build scripts first, so the expensive
+# dependency-build layer keyed on these files alone. Source-only changes then
+# reuse the cached layer instead of recompiling all dependencies.
+COPY Package.* /app/
+COPY .codecrafters /app/.codecrafters
+
+# Pre-build the dependencies (swift-nio etc.) against a stub source file. If
+# the stub doesn't match the package's target layout the build fails, which is
+# fine: compile.sh below will then do the full build instead.
+RUN (mkdir -p Sources \
+    && echo '// stub' > Sources/main.swift \
+    && swift build -c release --build-path /tmp/codecrafters-build-redis-swift) \
+    || true
+RUN rm -rf Sources
+
+# Snapshot mtimes so compile.sh's restore step can undo any mtime truncation
+# introduced when this layer is exported/restored (see snapshot_mtimes.sh).
+RUN .codecrafters/snapshot_mtimes.sh
+
 # .git & README.md are unique per-repository. We ignore them on first copy to prevent cache misses
 COPY --exclude=.git --exclude=README.md . /app
 
+# This also refreshes the mtimes snapshot after building, so no separate
+# snapshot step is needed here.
 RUN .codecrafters/compile.sh
-
-# Snapshot the mtimes of all source files after a successful build. Their mtimes
-# will be restored before the next build in the container. This works around
-# some container backends that truncate mtimes, causing Swift's llbuild to
-# rebuild everything (no incremental builds).
-#
-# See the documentation in `snapshot_mtimes.sh` for more details.
-RUN .codecrafters/snapshot_mtimes.sh
